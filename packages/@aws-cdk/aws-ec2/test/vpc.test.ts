@@ -458,6 +458,46 @@ nodeunitShim({
       }));
       test.done();
     },
+
+    'availability zones provided'(test: Test) {
+      const availabilityZones = ['az-test-1a', 'az-test-1b'];
+      const stack = getTestStack();
+      const vpc = new Vpc(stack, 'VPC', {
+        availabilityZones,
+        maxAzs: 1, // To ensure that maxAzs is ignored.
+      });
+      expect(vpc.availabilityZones).toBe(availabilityZones);
+      cdkExpect(stack).to(countResources('AWS::EC2::Subnet', 4));
+      cdkExpect(stack).to(countResources('AWS::EC2::Route', 4));
+      for (let i = 0; i < 4; i++) {
+        cdkExpect(stack).to(haveResource('AWS::EC2::Subnet', {
+          CidrBlock: `10.0.${i * 64}.0/18`,
+        }));
+      }
+      cdkExpect(stack).to(haveResourceLike('AWS::EC2::Route', {
+        DestinationCidrBlock: '0.0.0.0/0',
+        NatGatewayId: { },
+      }));
+      cdkExpect(stack).to(haveResourceLike('AWS::EC2::Subnet', {
+        AvailabilityZone: 'az-test-1a',
+        MapPublicIpOnLaunch: true,
+      }));
+      cdkExpect(stack).to(haveResourceLike('AWS::EC2::Subnet', {
+        AvailabilityZone: 'az-test-1b',
+        MapPublicIpOnLaunch: true,
+      }));
+      cdkExpect(stack).to(haveResourceLike('AWS::EC2::Subnet', {
+        AvailabilityZone: 'az-test-1a',
+        MapPublicIpOnLaunch: false,
+      }));
+      cdkExpect(stack).to(haveResourceLike('AWS::EC2::Subnet', {
+        AvailabilityZone: 'az-test-1b',
+        MapPublicIpOnLaunch: false,
+      }));
+
+      test.done();
+    },
+
     'with natGateway set to 1'(test: Test) {
       const stack = getTestStack();
       new Vpc(stack, 'VPC', {

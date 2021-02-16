@@ -767,6 +767,16 @@ export interface VpcProps {
   readonly maxAzs?: number;
 
   /**
+   * Provide the availability zones that the VPC's subnets will be deployed into, rather than
+   * letting the construct select them for you.
+   *
+   * If you provide a value for this property, then the maxAzs property will be ignored.
+   *
+   * @default AZs are selected as dictated by the maxAzs property.
+   */
+  readonly availabilityZones?: Array<string>;
+
+  /**
    * The number of NAT Gateways/Instances to create.
    *
    * The type of NAT gateway or instance will be determined by the
@@ -1211,10 +1221,12 @@ export class Vpc extends VpcBase {
 
     Tags.of(this).add(NAME_TAG, this.node.path);
 
-    this.availabilityZones = stack.availabilityZones;
+    this.availabilityZones = props.availabilityZones ?? stack.availabilityZones;
 
-    const maxAZs = props.maxAzs ?? 3;
-    this.availabilityZones = this.availabilityZones.slice(0, maxAZs);
+    if (!props.availabilityZones) {
+      const maxAZs = props.maxAzs ?? 3;
+      this.availabilityZones = this.availabilityZones.slice(0, maxAZs);
+    }
 
     this.vpcId = this.resource.ref;
 
